@@ -15,7 +15,6 @@ chroma_db/
 chroma/
 data/chroma/
 *.sqlite3
-*.db
 
 # ===============================
 # 3. Python & Virtual Environments
