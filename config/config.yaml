@@ -1,0 +1,115 @@
+# ============================================================
+# Ticket RAG system configuration
+# Paths are relative to the project root (where you run scripts from).
+# Secrets (API keys, SMTP password) are NOT stored here — put them in
+# a .env file (see .env.example) and reference them by env var name.
+# ============================================================
+
+database:
+  sqlite_path: "data/ticket_knowledge_base.db"
+
+chroma:
+  persist_directory: "data/chroma_db"
+  collection_name: "ticket_kb"
+  # batch size used when embedding tickets during (re)indexing
+  index_batch_size: 64
+
+llm:
+  # Local, OpenAI-compatible inference server -- works with Ollama, vLLM,
+  # LM Studio, text-generation-webui, etc, as long as it exposes
+  # /v1/chat/completions and /v1/embeddings. Default below assumes Ollama.
+  base_url: "http://localhost:11434/v1"
+  api_key_env: "LLM_API_KEY"   # most local servers ignore the value entirely;
+                                # Ollama just requires the header to be non-empty
+  embedding_model: "bge-large-en-v1.5"   # exact tag you've pulled/served locally
+  generation_model: "gpt-oss:20b"
+  # optional: a separate (e.g. smaller/faster) model for the grounding
+  # verifier pass. Leave equal to generation_model if you don't have one.
+  verifier_model: "gpt-oss:20b"
+
+rag:
+  top_k: 5                     # how many similar tickets to retrieve
+  max_context_snippets: 5      # how many retrieved tickets to feed to the LLM
+  max_snippet_chars: 800       # truncate each retrieved body/answer to this length
+
+  # --- retrieval scoring ---
+  # a retrieved ticket only counts as a "supporting match" if its
+  # similarity is at least this -- prevents one lucky top-1 hit (with
+  # everything else irrelevant) from looking like a confident retrieval.
+  #
+  # NOTE on tuning these: real embedding models (BGE included) rarely
+  # produce cosine similarities near 1.0 for merely "similar" (not
+  # near-duplicate) text -- 0.5-0.7 is often a genuinely strong match.
+  # The original defaults here (0.55 / 0.75 / requiring 2 supporting
+  # matches / 0.80 confidence) were calibrated defensively and turned out
+  # to be too strict in practice -- almost everything fell through to
+  # admin review. The values below are a more realistic starting point;
+  # watch the composite_confidence / composite_retrieval_score chips in
+  # the admin "Pending review" UI on your own data and nudge these up or
+  # down from there.
+  per_item_relevance_threshold: 0.45
+  # composite_retrieval_score = top1_weight * top1_similarity
+  #                            + mean_weight * mean(similarities of supporting matches)
+  retrieval_top1_weight: 0.6
+  retrieval_mean_weight: 0.4
+  similarity_threshold: 0.55   # min composite_retrieval_score to trust the retrieval
+  min_supporting_matches: 1    # require at least this many supporting matches
+
+  # --- confidence scoring ---
+  use_grounding_verifier: true   # run a second, independent LLM-as-judge pass
+  # composite_confidence = llm_weight * drafting-call confidence
+  #                       + grounding_weight * verifier's grounding_score
+  # (if use_grounding_verifier is false, composite_confidence = llm_confidence)
+  confidence_llm_weight: 0.5
+  confidence_grounding_weight: 0.5
+  confidence_threshold: 0.65    # min composite_confidence to auto-send
+
+  # final auto-send gate (see rag_pipeline.py::_decide) requires ALL of:
+  #   composite_retrieval_score >= similarity_threshold
+  #   composite_confidence      >= confidence_threshold
+  #   supporting_match_count    >= min_supporting_matches
+  #   the LLM did not set needs_human_review
+  #   the LLM did not raise any risk_flags
+  #   the LLM did not ask a clarifying_question
+  #
+  # If everything is landing in admin review, check the "gate failed
+  # because" line on each pending card in the admin UI (or
+  # decision.gate_failures if calling the pipeline directly) before
+  # touching these numbers -- it tells you exactly which condition(s)
+  # failed. A very common cause with smaller/local models is the LLM not
+  # returning valid JSON, which forces a safe-by-default escalation
+  # ("could not parse structured output") regardless of these thresholds;
+  # that shows up as gate_failures containing "risk_flags" with
+  # "insufficient_context" and is a prompting/parsing issue, not a
+  # threshold-tuning one.
+
+admin:
+  notify_method: "console"     # "console" | "email"
+  email:
+    smtp_host: ""
+    smtp_port: 587
+    smtp_user: ""
+    smtp_password_env: "SMTP_PASSWORD"
+    from_address: ""
+    to_address: ""             # admin inbox that gets notified of drafts
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  # comma-separated origins allowed to call the API from a browser (future
+  # frontend). "*" is fine for local dev, tighten before deploying.
+  cors_origins: ["*"]
+
+auth:
+  # Minimal admin-only gate for the /admin/* API endpoints -- NOT a full
+  # user/admin login system (that's the future work described in the
+  # spec). A single shared password protects the admin UI; there is no
+  # per-admin identity, session expiry, or user accounts yet.
+  admin_password_env: "ADMIN_PASSWORD"
+  token_secret_env: "AUTH_TOKEN_SECRET"
+
+app:
+  log_level: "INFO"
+  # if true, the pipeline uses a deterministic mock LLM/embedder instead of
+  # calling your local model server — useful for offline testing without it running.
+  use_mock_llm: false

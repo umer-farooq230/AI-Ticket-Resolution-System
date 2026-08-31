@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ticket Support</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">T</span>
+      <span class="brand-name">Ticket Support</span>
+    </div>
+    <nav class="tabs" id="main-tabs">
+      <button class="tab-btn active" data-view="user">Submit a Ticket</button>
+      <button class="tab-btn" data-view="admin">Admin</button>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- ============ USER VIEW ============ -->
+  <section id="view-user" class="view active">
+    <div class="grid-2">
+
+      <div class="card">
+        <h2>Submit a ticket</h2>
+        <p class="muted">Tell us what's going on — we'll get back to you as soon as possible.</p>
+
+        <form id="ticket-form">
+          <label class="field">
+            <span class="field-label">Email address</span>
+            <input type="email" id="ticket-email" placeholder="[email protected]" required>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Subject</span>
+            <input type="text" id="ticket-subject" placeholder="Brief summary of the issue" required>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Message</span>
+            <textarea id="ticket-body" rows="6" placeholder="Describe your issue in detail..." required></textarea>
+          </label>
+
+          <button type="submit" class="btn btn-primary" id="ticket-submit-btn">Submit ticket</button>
+        </form>
+
+        <div id="ticket-result" class="result-box hidden"></div>
+      </div>
+
+      <div class="card">
+        <h2>Check ticket status</h2>
+        <p class="muted">Have a ticket reference number? Look up its resolution here.</p>
+
+        <form id="status-form">
+          <label class="field">
+            <span class="field-label">Ticket reference</span>
+            <input type="number" id="status-ticket-id" placeholder="e.g. 28262" required>
+          </label>
+          <button type="submit" class="btn btn-secondary">Look up</button>
+        </form>
+
+        <div id="status-result" class="result-box hidden"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ ADMIN VIEW ============ -->
+  <section id="view-admin" class="view">
+
+    <!-- login gate -->
+    <div id="admin-login" class="card card-narrow">
+      <h2>Admin login</h2>
+      <p class="muted">Single shared password for now — full accounts are a future addition.</p>
+      <form id="login-form">
+        <label class="field">
+          <span class="field-label">Password</span>
+          <input type="password" id="admin-password" required>
+        </label>
+        <button type="submit" class="btn btn-primary">Log in</button>
+      </form>
+      <div id="login-error" class="error-text hidden"></div>
+    </div>
+
+    <!-- dashboard -->
+    <div id="admin-dashboard" class="hidden">
+      <div class="dash-header">
+        <div class="dash-stats">
+          <div class="stat-pill">
+            <span class="stat-number" id="pending-count">0</span>
+            <span class="stat-label">pending review</span>
+          </div>
+        </div>
+        <div class="dash-actions">
+          <button class="btn btn-ghost" id="refresh-btn">Refresh</button>
+          <button class="btn btn-ghost" id="logout-btn">Log out</button>
+        </div>
+      </div>
+
+      <nav class="subtabs" id="admin-subtabs">
+        <button class="subtab-btn active" data-subview="pending">Pending review</button>
+        <button class="subtab-btn" data-subview="resolved">Resolved tickets</button>
+      </nav>
+
+      <!-- pending review list -->
+      <div id="subview-pending" class="subview active">
+        <div id="pending-list" class="stack"></div>
+        <p id="pending-empty" class="muted hidden">Nothing waiting on review right now.</p>
+      </div>
+
+      <!-- resolved tickets browser -->
+      <div id="subview-resolved" class="subview">
+        <div class="toolbar">
+          <label class="field field-inline">
+            <span class="field-label">Source</span>
+            <select id="resolved-source-filter">
+              <option value="">All</option>
+              <option value="auto">Auto (LLM)</option>
+              <option value="admin">Admin-approved</option>
+              <option value="historical">Historical</option>
+            </select>
+          </label>
+        </div>
+        <div id="resolved-list" class="stack"></div>
+        <p id="resolved-empty" class="muted hidden">No tickets found for this filter.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- templates -->
+<template id="tpl-pending-card">
+  <article class="ticket-card">
+    <header class="ticket-card-header">
+      <h3 class="ticket-subject"></h3>
+      <span class="badge badge-id"></span>
+    </header>
+    <p class="ticket-body"></p>
+
+    <div class="chip-row chip-row-scores">
+      <span class="chip chip-confidence"></span>
+      <span class="chip chip-retrieval"></span>
+      <span class="chip chip-support"></span>
+    </div>
+    <div class="chip-row chip-row-risk"></div>
+
+    <div class="classify-row">
+      <span class="tagline">Suggested:</span>
+      <span class="chip chip-neutral chip-type"></span>
+      <span class="chip chip-neutral chip-queue"></span>
+      <span class="chip chip-neutral chip-priority"></span>
+    </div>
+
+    <label class="field">
+      <span class="field-label">Draft answer (editable)</span>
+      <textarea class="draft-answer" rows="5"></textarea>
+    </label>
+
+    <div class="clarifying hidden">
+      <span class="tagline">Model asked:</span>
+      <span class="clarifying-text"></span>
+    </div>
+
+    <div class="gate-failures hidden">
+      <span class="tagline">Blocked from auto-send because:</span>
+      <ul class="gate-failures-list"></ul>
+    </div>
+
+    <div class="ticket-card-actions">
+      <button class="btn btn-primary btn-approve">Approve &amp; send</button>
+      <button class="btn btn-danger-outline btn-reject">Reject</button>
+    </div>
+  </article>
+</template>
+
+<template id="tpl-resolved-row">
+  <article class="resolved-row">
+    <div class="resolved-main">
+      <span class="badge badge-id"></span>
+      <span class="resolved-subject"></span>
+      <span class="chip chip-source"></span>
+    </div>
+    <div class="resolved-meta">
+      <span class="meta-item meta-queue"></span>
+      <span class="meta-item meta-priority"></span>
+      <span class="meta-item meta-confidence"></span>
+    </div>
+    <p class="resolved-answer"></p>
+
+    <div class="resolved-detail hidden"></div>
+
+    <div class="resolved-actions">
+      <button class="btn btn-secondary btn-view">View details</button>
+      <button class="btn btn-danger-outline btn-delete">Delete</button>
+    </div>
+  </article>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
