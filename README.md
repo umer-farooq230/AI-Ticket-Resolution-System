@@ -35,6 +35,7 @@ Ticket in → Retrieve similar past tickets (Chroma) → LLM drafts an answer
 - **Database:** SQLite
 - **Frontend:** plain HTML/CSS/JS, served by the same FastAPI app
 - **Containerization:** Docker
+- **CI/CD:** AWS (EC2, t3.small) (in progress)
 
 ## Getting started
 
