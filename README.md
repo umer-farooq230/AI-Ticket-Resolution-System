@@ -1,6 +1,6 @@
 # AI Ticket Resolution System
 
-> For a detailed breakdown of the architecture, data flow, models, API, and design decisions, see [`SRS-Doc.pdf`](./SRS-Doc.pdf) (or [`SRS-Doc.docx`](./SRS-Doc.docx)). This README is just a quick overview.
+> For a detailed breakdown of the architecture, data flow, models, API, and design decisions, see [`SRS.md`](./SRS.md) . This README is just a quick overview.
 
 A prototype that reads an incoming support ticket, pulls similar past tickets from a knowledge base, drafts an answer with an LLM, and either sends it automatically or hands it to an admin for review — depending on how confident the system is.
 
