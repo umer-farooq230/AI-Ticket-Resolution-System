@@ -27,7 +27,7 @@ import struct
 from chromadb import EmbeddingFunction, Documents, Embeddings
 
 
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer   
 
 
 class BGEEmbeddingFunction(EmbeddingFunction):

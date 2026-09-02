@@ -33,6 +33,13 @@ def load_config(config_path: str = None) -> dict:
     # require the Authorization header to be non-empty
     cfg["llm"]["api_key"] = os.environ.get(llm_api_key_env) or "not-needed"
 
+    # HF Inference API token for the embedding backend (see
+    # src/embeddings.py::HFInferenceEmbeddingFunction). Only required when
+    # llm.embedding_backend is "hf_inference" (the default).
+    hf_cfg = cfg["llm"].get("hf_inference") or {}
+    hf_api_key_env = hf_cfg.get("api_key_env", "HF_API_TOKEN")
+    cfg["llm"]["hf_api_key"] = os.environ.get(hf_api_key_env)
+
     smtp_pw_env = cfg["admin"]["email"]["smtp_password_env"]
     cfg["admin"]["email"]["smtp_password"] = os.environ.get(smtp_pw_env, "")
 

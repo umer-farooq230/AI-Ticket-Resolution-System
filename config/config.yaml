@@ -18,14 +18,35 @@ llm:
   # Local, OpenAI-compatible inference server -- works with Ollama, vLLM,
   # LM Studio, text-generation-webui, etc, as long as it exposes
   # /v1/chat/completions and /v1/embeddings. Default below assumes Ollama.
-  base_url: "http://localhost:11434/v1"
-  api_key_env: "LLM_API_KEY"   # most local servers ignore the value entirely;
+  base_url: "https://api.groq.com/openai/v1"
+
+  api_key_env: "GROQ_API_KEY"   # most local servers ignore the value entirely;
                                 # Ollama just requires the header to be non-empty
   embedding_model: "bge-large-en-v1.5"   # exact tag you've pulled/served locally
-  generation_model: "gpt-oss:20b"
+  generation_model: "openai/gpt-oss-20b"
   # optional: a separate (e.g. smaller/faster) model for the grounding
   # verifier pass. Leave equal to generation_model if you don't have one.
-  verifier_model: "gpt-oss:20b"
+  verifier_model: "openai/gpt-oss-20b"
+
+  # Which embedding backend src/embeddings.py::get_embedding_function uses:
+  #   "hf_inference" -- calls the Hugging Face Inference API over HTTP.
+  #                     Nothing is downloaded, nothing runs in-process --
+  #                     the right choice for prod containers.
+  #   "local"        -- runs the model in-process via sentence-transformers
+  #                     (downloads the model on first use). Fine for local
+  #                     dev if you'd rather not depend on network calls.
+  # (config.app.use_mock_llm: true overrides this and always uses the
+  # dependency-free mock embedder, regardless of this setting.)
+  embedding_backend: "hf_inference"
+  hf_inference:
+    model: "BAAI/bge-large-en-v1.5"
+    api_key_env: "HF_API_TOKEN"   # your HF access token (https://huggingface.co/settings/tokens)
+    expected_dim: 1024            # bge-large-en-v1.5's known output size; used to
+                                   # fail loudly and clearly if the API response
+                                   # shape/model ever doesn't match, instead of
+                                   # letting Chroma raise its own cryptic error
+    max_retries: 5
+    retry_wait_seconds: 3
 
 rag:
   top_k: 5                     # how many similar tickets to retrieve
@@ -84,14 +105,14 @@ rag:
   # threshold-tuning one.
 
 admin:
-  notify_method: "console"     # "console" | "email"
+  notify_method: "email"     # "console" | "email"
   email:
-    smtp_host: ""
+    smtp_host: "smtp.gmail.com"
     smtp_port: 587
-    smtp_user: ""
+    smtp_user: "umerfarooq230@gmail.com"
     smtp_password_env: "SMTP_PASSWORD"
-    from_address: ""
-    to_address: ""             # admin inbox that gets notified of drafts
+    from_address: "umerfarooq230@gmail.com"
+    to_address: "umerfarooq230@gmail.com"             # admin inbox that gets notified of drafts
 
 api:
   host: "0.0.0.0"
